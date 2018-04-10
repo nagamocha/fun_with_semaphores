@@ -1,106 +1,62 @@
+#ifndef COUNTER_H
+#define COUNTER_H
+
+
 #include <pthread.h>
-#include "wrappers.h"
+#include <semaphore.h>
+#include <stdio.h>
+
 
 
 
 typedef struct __counter_t{
   int value;
-  pthread_mutex_t lock;
+  sem_t lock;
 } counter_t;
 
 
-void init_counter(counter_t *c){
+void counter_init(counter_t *c){
   c->value = 0;
-  Pthread_mutex_init(&c->lock);
+  sem_init(&(c->lock), 1, 1);
 }
 
-void increment(counter_t *c){
-  Pthread_mutex_lock(&c->lock);
+void counter_increment(counter_t *c){
+  sem_wait(&c->lock);
   c->value++;
-  Pthread_mutex_unlock(&c->lock);
+  sem_post(&c->lock);
 }
 
-void decrement(counter_t *c){
-  Pthread_mutex_lock(&c->lock);
-  c->value--;
-  Pthread_mutex_unlock(&c->lock);
+void counter_decrement(counter_t *c){
+    sem_wait(&c->lock);
+    c->value--;
+    sem_post(&c->lock);
 }
 
-int get_c(counter_t *c){
-  Pthread_mutex_lock(&c->lock);
+int counter_get_c(counter_t *c){
+  sem_wait(&c->lock);
   int rc = c->value;
-  Pthread_mutex_unlock(&c->lock);
+  sem_post(&c->lock);
   return rc;
 }
 
-void clean_up_counter(counter_t *c){
-  Pthread_mutex_destroy(&c->lock);
+void counter_cleanup(counter_t *c){
+  sem_destroy(&c->lock);
 }
 
-
 /*
+
 int main(){
   counter_t c;
-  init_counter(&c);
-  increment(&c);
-  printf("counter val: %d\n", get(&c));
-  decrement(&c);
-  printf("counter val: %d\n", get(&c));
-  clean_up_counter(&c);
+  counter_init(&c);
+  counter_increment(&c);
+  printf("counter val: %d\n", counter_get_c(&c));
+  counter_decrement(&c);
+  printf("counter val: %d\n", counter_get_c(&c));
+  counter_cleanup(&c);
   return 0;
 }
 */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#endif
 
 
 //end

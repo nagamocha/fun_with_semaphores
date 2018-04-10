@@ -1,9 +1,5 @@
-main: main_with_sem.c client sem_queue
-	gcc main_with_sem.c -o main -lpthread
+main: main.c common.h token.h shared_mem.h client
+	gcc main.c -o main -lpthread
 
-client: client.c
+client: client.c token.h shared_mem.h
 	gcc client.c -o client -lpthread
-
-
-sem_queue: sem_queue.c
-	gcc sem_queue.c -o sem_queue -lpthread

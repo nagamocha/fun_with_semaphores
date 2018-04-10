@@ -1,53 +1,44 @@
-
 #include <stdio.h>
-#include <stdlib.h>
 #include <sys/types.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
 #include <unistd.h>
 #include <semaphore.h>
 
 #include "common.h"
-
+#include "shared_mem.h"
+#include "token.h"
 
 int main(int argc, char *argv[]){
-  key_t shm_key;
-  int shm_id;
-  s_memory_cw *shd_mem_cw_p;
-  int status;
 
-  shm_key = ftok(".", 'x');
-  shm_id = shmget(shm_key, sizeof(s_memory_cw), 0666);
-  if(shm_id < 0){
-    printf("shmget error client\n");
-    exit(1);
-  }
-  //attach memory to own address space
-  shd_mem_cw_p= (s_memory_cw *)shmat(shm_id, NULL, 0);
-  if((long) shd_mem_cw_p== -1){
-    printf("shmat() error client\n");
-    exit(1);
-  }
+    int status;
+    int token_id = -1;
+    int client_id = getpid();
+    shared_mem_t *sm_p;
+    main_token_system_t *mt_p;
 
-  int *arr = shd_mem_cw_p->arr;
-  sem_t *sem_p = &(shd_mem_cw_p->sem);
-  arr[0] = 90;
-  arr[1] = 100;
-  arr[2] = 120;
-  arr[3] = 300;
+    client_id = getpid();
+    sm_p = shared_memory_child_get();
+    printf("Hello from client %d\n", getpid());
+    if(sm_p == NULL){
+        fprintf(stderr, "Error Client: %d unable to attach shared memory, exit\n", client_id);
+        exit(1);
+    }
+    int *j;
+    j = &(sm_p->x);
+    *j =90;
 
-  status = sem_post(sem_p);
-  if(status != 0){
-    printf("error sem_post() client\n");
-  }
+    mt_p = &(sm_p->mt);
+    token_id = mt_token_get(mt_p, client_id);
+    printf("zoom\n");
+    //access shared memory using sm_p
+    fprintf(stdout, "Client: %d got token %d\n", client_id, token_id);
+    mt_token_wait_for_signal(mt_p, token_id, client_id);
+    fprintf(stderr, "Client: %d received signal\n", client_id);
+    mt_token_return(mt_p, token_id, client_id);
+    printf("Zzup from client %d\n", getpid());
 
-
-  //detach shared memory from address space
-  status = shmdt(shd_mem_cw_p);
-  if(status < 0){
-    printf("error Shared memory cw detachment, client\n");
-  }
-  //parent will remove the segment
-
-  return 0;
+    //detach from shared memory, parent will cleanup
+    if(shared_memory_child_detach(sm_p) != SUCCESSFUL){
+        fprintf(stderr, "Error Client: %d unable detach shared memory\n", client_id);
+    }
+    return 0;
 }
