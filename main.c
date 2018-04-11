@@ -4,11 +4,36 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <pthread.h>
+#include <signal.h>
 
 
 #include "common.h"
 #include "shared_mem.h"
-#include "token.h"
+#include "main_token_system.h"
+#include "menu.h"
+#include "stats_purchases.h"
+#include "stats_clients.h"
+
+typedef struct{
+    stats_clients_buf_t *st_c_p;
+    FILE* fp;
+    int continue_running;
+}collect_client_stats_args_t;
+
+void* collect_client_stats(void* arg){
+    int status;
+    stats_clients_buf_t *st_c_p = ((collect_client_stats_args_t *)arg)->st_c_p;
+    FILE* stats_clients_fp = ((collect_client_stats_args_t *)arg)->fp;
+    stats_client_t s ;
+    while(1){
+        status = ((collect_client_stats_args_t *)arg)->continue_running;
+        //stats_clients_pop(st_c_p, &s);
+        //fwrite(&s, sizeof(stats_client_t), 1, stats_clients_fp);
+        if (status == 0) break;
+    }
+    return NULL;
+}
 
 int main(){
     int status;
@@ -20,46 +45,64 @@ int main(){
 
     int sm_id;
     shared_mem_t *sm_p;
+    main_token_system_t *mt_p;
+    stats_clients_buf_t *st_c_p;
+    collect_client_stats_args_t *ccs_arg_p;
+    pthread_t tid;
+
+    FILE* stats_clients_fp = fopen("stats_clients.bin", "wb");
+    ccs_arg_p = malloc(sizeof(collect_client_stats_args_t));
+
+    if(!stats_clients_fp || !ccs_arg_p){
+        fprintf(stderr, "error setup stats_clients.bin. exit");
+        exit(2);
+    }
 
     sm_p = shared_memory_main_get(&sm_id);
     if(sm_p == NULL){
-        fprintf(stderr, "error getting shared memory main_process exiting...\n");
+        fprintf(stderr, "error getting shared memory main_process. exit\n");
         exit(1);
     }
     shared_memory_init(sm_p);
-    main_token_system_t *mt_p;
+
+    //create thread that handles client stats
+    pthread_create(&tid, 0, collect_client_stats, (void *)ccs_arg_p );
 
     mt_p = &(sm_p->mt);
-    token_id = mt_token_get(mt_p, client_id);
-    //access shared memory using sm_p
-    fprintf(stdout, "Client: %d got token %d\n", client_id, token_id);
-    mt_token_wait_for_signal(mt_p, token_id, client_id);
-    fprintf(stderr, "Client: %d received signal\n", client_id);
-    mt_token_return(mt_p, token_id, client_id);
-    printf("Client %d returned token\n", getpid());
+    st_c_p = &(sm_p->st_c);
+    ccs_arg_p->st_c_p = st_c_p;
+    ccs_arg_p->fp = stats_clients_fp;
+    ccs_arg_p->continue_running = 1;
 
-
-
-/*
-    cid = fork();
-    switch(cid){
-        case -1:
-            printf("error fork()\n");
+    myargs[0] = "./client";
+    myargs[1] = NULL;
+    /*
+    for(i = 0; i < CLIENTS; ++i){
+        cid = fork();
+        if(cid == -1){
+            perror("error fork()\n");
             break;
-        case 0://child
-            //sprintf(s_root_pid,"%d",root_pid);
-            myargs[0] = "./client";
-            myargs[1] = NULL;
+        }else if(cid == 0){
             execvp(myargs[0], myargs);
-            break;//not supposed to reach here
-        default: //MAIN
-            waitpid(cid, &status, 0);
-            printf("child %d exit with status: %d\n", cid, status);
-            printf("int x = %d\n", sm_p->x);
+            exit(9);//not supposed to reach here
+        }else   continue;//spawn more clients
+    }
 
-
+    //reap children
+    for(i = 0; i < CLIENTS; ++i){
+        cid = wait(&status);
+        //printf("child %d exit with status: %d\n", cid, status);
     }*/
-
+    //collect client stats
+    ccs_arg_p->continue_running = 0;
+    status = pthread_join(tid, NULL);
+    if(status == SUCCESSFUL){
+        printf("OKEY DOKEY\n");
+    }else{
+        fprintf(stderr, "Error client stats thread unable to collect client stats\n");
+    }
+    free(ccs_arg_p);
+    fclose(stats_clients_fp);
     shared_memory_cleanup(sm_p);
     status = shared_memory_main_detach(sm_p, sm_id);
     return 0;

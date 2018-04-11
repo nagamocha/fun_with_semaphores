@@ -20,15 +20,30 @@ void counter_init(counter_t *c){
   sem_init(&(c->lock), 1, 1);
 }
 
+void counter_cleanup(counter_t *c){
+  sem_destroy(&c->lock);
+}
 void counter_increment(counter_t *c){
   sem_wait(&c->lock);
   c->value++;
   sem_post(&c->lock);
 }
 
+void counter_increment_by_n(counter_t *c, int n){
+  sem_wait(&c->lock);
+  c->value = c->value + n;
+  sem_post(&c->lock);
+}
+
 void counter_decrement(counter_t *c){
     sem_wait(&c->lock);
     c->value--;
+    sem_post(&c->lock);
+}
+
+void counter_decrement_by_n(counter_t *c, int n){
+    sem_wait(&c->lock);
+    c->value = c->value - n;
     sem_post(&c->lock);
 }
 
@@ -39,9 +54,6 @@ int counter_get_c(counter_t *c){
   return rc;
 }
 
-void counter_cleanup(counter_t *c){
-  sem_destroy(&c->lock);
-}
 
 /*
 

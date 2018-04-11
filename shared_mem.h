@@ -9,21 +9,37 @@
 #include <sys/shm.h>
 #include <unistd.h>
 
-#include "token.h"
 #include "common.h"
+#include "main_token_system.h"
+#include "lineup_queue.h"
+#include "menu.h"
+#include "stats_purchases.h"
+#include "stats_clients.h"
 
 typedef struct{
-    int x;
     main_token_system_t mt;
+    lineup_queue_t lq;
+    lineup_queue_t sq;
+    menu_item_t mn[TOTAL_MENU_ITEMS];
+    counter_t st_p[TOTAL_MENU_ITEMS];
+    stats_clients_buf_t st_c;
 } shared_mem_t;
 
 
 void shared_memory_init(shared_mem_t* sm){
     mt_token_system_init(&(sm->mt));
+    lineup_queue_init(&(sm->lq));
+    lineup_queue_init(&(sm->sq));
+    stats_purchase_init(sm->st_p);
+    stats_clients_init(&(sm->st_c));
 }
 
 void shared_memory_cleanup(shared_mem_t* sm){
     mt_token_system_cleanup(&(sm->mt));
+    lineup_queue_cleanup(&(sm->lq));
+    lineup_queue_cleanup(&(sm->sq));
+    stats_purchase_cleanup(sm->st_p);
+    stats_clients_cleanup(&(sm->st_c));
 }
 
 shared_mem_t* shared_memory_child_get(){
