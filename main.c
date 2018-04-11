@@ -94,6 +94,9 @@ int main(){
         //printf("child %d exit with status: %d\n", cid, status);
     }*/
     //collect client stats
+
+    //kill(root_pid, SIGUSR1);
+
     ccs_arg_p->continue_running = 0;
     status = pthread_join(tid, NULL);
     if(status == SUCCESSFUL){

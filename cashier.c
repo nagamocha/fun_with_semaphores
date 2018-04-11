@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <signal.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 #include "common.h"
 #include "lineup_queue.h"
@@ -16,7 +17,7 @@ int cashier_id;
 
 void handle_sig_USR1(int signal) {
     if(shared_memory_child_detach(sm_p) != SUCCESSFUL){
-        fprintf(stderr, "Error Client: %d unable detach shared memory\n", cashier_id);
+        fprintf(stderr, "Error Cashier: %d unable detach shared memory\n", cashier_id);
     }
 }
 
@@ -24,8 +25,8 @@ int main(int argc, char* argv[]){
     int status;
 
     int token_id;
-    int time_process_order;
-    int time_break;
+    int time_process_order = 3;
+    int time_break = 10;
     lineup_queue_t *lq_p;
     main_token_system_t *mt_p;
     order_t c;
@@ -69,6 +70,7 @@ int main(int argc, char* argv[]){
             mt_token_give_signal(mt_p, c.token_id, cashier_id);
             //record, accounting purchase
             stats_purchase_record(sm_p->st_p, c.item_id);
+            lineup_queue_push(&(sm_p->sq), c);//push to server
         }else{
             printf("Cashier: %d Queue empty, going for a break for %d seconds\n", cashier_id, time_break);
             sleep(time_break);
@@ -79,7 +81,7 @@ int main(int argc, char* argv[]){
 
     //detach from shared memory, parent will cleanup
     if(shared_memory_child_detach(sm_p) != SUCCESSFUL){
-        fprintf(stderr, "Error Client: %d unable detach shared memory\n", cashier_id);
+        fprintf(stderr, "Error Cashier: %d unable detach shared memory\n", cashier_id);
     }
     return 0;
 }

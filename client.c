@@ -2,6 +2,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <semaphore.h>
+#include <time.h>
 
 #include "common.h"
 #include "shared_mem.h"
@@ -11,70 +12,96 @@
 int main(int argc, char *argv[]){
 
     int status;
-    int token_id = -1;
-    int client_id;
-    int item_id;
+    int item_id = 0;
 
     int is_served = 0;
     int time_before_enter;
-    int time_eat;
-    int time_waiting = 0;
-    int time_total = 0;
+    int time_eat = 1;
+    int staff_id;
+    char* item_name;
+    time_t now;
+    struct tm *tm;
+    int t1, t2, t3;
     shared_mem_t *sm_p;
     main_token_system_t *mt_p;
+    lineup_queue_t *lq_p;
+    stats_clients_buf_t *st_c_p;
+    menu_item_t *mn_p;
+    order_t o;
+    o.client_id = getpid();
 
-    client_id = getpid();
     sm_p = shared_memory_child_get();
     //printf("Hello from client %d\n", getpid());
     if(sm_p == NULL){
         fprintf(stderr, "Error Cashier: %d unable to attach shared memory.\n\
-                        Note, main should create shared memory first. Exit\n", client_id);
+                        Note, main should create shared memory first. Exit\n", o.client_id);
         exit(1);
+    }
+    for (int i = 1; i < argc; i += 2) {
+        if (strcmp(argv[i], "-i") == 0){ /*depth of tree*/
+            item_id = strtol(argv[i+1], NULL, 0);
+        }
+        if (strcmp(argv[i], "-e") == 0){ /*depth of tree*/
+            time_eat = strtol(argv[i+1], NULL, 0);
+        }
     }
 
     mt_p = &(sm_p->mt);
+    lq_p = &(sm_p->lq);
+    st_c_p = &(sm_p->st_c);
+    o.item_id = item_id;
+    o.token_id = mt_token_get(mt_p, o.client_id);
+    item_name = menu_get_name(sm_p->mn, o.item_id);
 //-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
-    token_id = mt_token_get(mt_p, client_id);
+    now = time(0);
+    tm = localtime (&now);//assert not null or sth
+    t1 = tm->tm_sec;
     //access shared memory using sm_p
-    fprintf(stdout, "Client: %d got token %d\n", client_id, token_id);
-    mt_token_wait_for_signal(mt_p, token_id, client_id);
-    //fprintf(stderr, "Client: %d received signal\n", client_id);
+    fprintf(stdout, "Client: %d got token %d entered restaurant\n", o.client_id, o.token_id);
+    mt_token_wait_for_signal(mt_p, o.token_id, o.client_id);
+    //enter queue
+    status = lineup_queue_trypush(lq_p, o);
+    if(status == SUCCESSFUL){
+        fprintf(stdout, "Client: %d entered queue successfully\n", o.client_id);
+        is_served = 1;
+
+        staff_id = mt_token_wait_for_signal(mt_p, o.token_id, o.client_id);
+        fprintf(stdout, "Client: %d order for item %d received by Cashier: %d\n", o.client_id, o.item_id, staff_id);
+
+        staff_id = mt_token_wait_for_signal(mt_p, o.token_id, o.client_id);
+        now = time(0);
+        tm = localtime (&now);//assert not null or sth
+        t2 = tm->tm_sec;
+        fprintf(stdout, "Client: %d order for item %d processed by Cashier: %d\n", o.client_id, o.item_id, staff_id);
+
+        staff_id = mt_token_wait_for_signal(mt_p, o.token_id, o.client_id);
+        fprintf(stdout, "Client: %d received item %d from Server: %d\n", o.client_id, o.item_id, staff_id);
+
+        sleep(time_eat);
+        fprintf(stdout, "Client: %d took time %d to eat item: %d name: %s", o.client_id, time_eat, o.item_id, item_name);
+    }else{
+        now = time(0);
+        tm = localtime (&now);//assert not null or sth
+        t2 = tm->tm_sec;
+        fprintf(stdout, "Client: %d restaurant queue full\n", o.client_id);
+    }
+
     //restore value
-    mt_token_give_signal(mt_p, token_id, client_id);
-    mt_token_return(mt_p, token_id, client_id);
+    mt_token_give_signal(mt_p, o.token_id, o.client_id);
+    mt_token_return(mt_p, o.token_id, o.client_id);
+    fprintf(stdout, "Client: %d departing from restaurant\n", o.client_id);
+    now = time(0);
+    tm = localtime (&now);//assert not null or sth
+    t3 = tm->tm_sec;
+    stats_clients_push(st_c_p, o.client_id, t2-t1, t3-t1, is_served);
 //-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
     // get random eat time rand()
-    //get item_id
-    //wait for time_before_enter before trying to enter
 
-    //enter restaurant, get token
-    //check queue, if queue full, go to EXIT
-
-    //if queue not full, write to queue your order
-    //set is served to true
-    //order consists of(item orderd, value, client_id, token_id)
-
-    //waitfor signal from cashier, that cashier_id is has received your order
-    //print that shit out
-
-    //after cashier takes their time processing your order
-    //wait for second signal that cashier processed your order
-    //print that shit out,
-    //record total time spent waiting
-
-    //once that, wait for signal from server_id for  food ready
-    //print that shit out
-
-    //once food ready, take time t_eat to eat ie just use sleep()
-    //then goto EXIT
-
-
-    //return token, get_time spent, print out that you left
     //write to buffer(client_id, time_spent_total, time_waiting in line )
 //-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
     //detach from shared memory, parent will cleanup
     if(shared_memory_child_detach(sm_p) != SUCCESSFUL){
-        fprintf(stderr, "Error Client: %d unable detach shared memory\n", client_id);
+        fprintf(stderr, "Error Client: %d unable detach shared memory\n", o.client_id);
     }
     return 0;
 }
