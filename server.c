@@ -74,9 +74,11 @@ int main(int argc, char* argv[]){
     time_serve = (rand() % time_serve) + 1;
     sq_p = &(sm_p->sq);
     mt_p = &(sm_p->mt);
+    mn_p = sm_p->mn;
     printf("Server: %d ready to server order\n", server_id);
     while(1){
         c_p = malloc(sizeof(order_t));
+        assert(c_p != NULL);
         lineup_queue_pop(sq_p, c_p);
         pthread_create(&tid, 0, serve_order, (void *)c_p);
     }

@@ -15,6 +15,8 @@
 #include "stats_purchases.h"
 #include "stats_clients.h"
 
+#define NO 9
+
 typedef struct{
     stats_clients_buf_t *st_c_p;
     FILE* fp;
@@ -76,8 +78,8 @@ int main(){
 
     myargs[0] = "./client";
     myargs[1] = NULL;
-    /*
-    for(i = 0; i < CLIENTS; ++i){
+
+    for(i = 0; i < NO; ++i){
         cid = fork();
         if(cid == -1){
             perror("error fork()\n");
@@ -92,7 +94,7 @@ int main(){
     for(i = 0; i < CLIENTS; ++i){
         cid = wait(&status);
         //printf("child %d exit with status: %d\n", cid, status);
-    }*/
+    }
     //collect client stats
 
     //kill(root_pid, SIGUSR1);

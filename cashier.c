@@ -69,7 +69,7 @@ int main(int argc, char* argv[]){
             printf("Cashier: %d processed order item %d from Client: %d, time taken: %d\n", cashier_id, c.item_id, c.client_id, time_process_order);
             mt_token_give_signal(mt_p, c.token_id, cashier_id);
             //record, accounting purchase
-            stats_purchase_record(sm_p->st_p, c.item_id);
+            //stats_purchase_record(sm_p->st_p, c.item_id);
             lineup_queue_push(&(sm_p->sq), c);//push to server
         }else{
             printf("Cashier: %d Queue empty, going for a break for %d seconds\n", cashier_id, time_break);
