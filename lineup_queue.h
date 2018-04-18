@@ -11,6 +11,27 @@
 
 #include "counter.h"
 #include "common.h"
+/*
+A bounded buffer is used to model the lineup queue
+
+It supports multiple readers and multiple writers concurrently,
+uses a granular lock to protect the enter buffer against race conditions
+
+There are two indices that coordinate reading and writing
+the fill index  indexes into a an empty position for writing into, if there
+are no empty slots, the writer(s) will wait on the empty semaphore, once a writer
+writes an item, they post to the full semaphore
+The converse is true for readers
+
+
+In this case, clients are the writers and cashiers are the readers.
+clients write their orders to the queue. However, if the lineup queue is full,
+rather than waut, clients leave immediately as requried by the prompt
+
+AN order consists of the clients item_id, client's token id which they are
+issued upon entering the restaurant and the clients pid 
+
+*/
 
 
 typedef struct{

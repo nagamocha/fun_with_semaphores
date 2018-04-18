@@ -3,11 +3,17 @@
 
 #include "counter.h"
 #include "menu.h"
+/*
+functions for recording/reporting purchases
+plus helper functions
 
+
+*/
 void stats_purchase_init(counter_t *st_p){
     int i;
     for(i = 0; i < TOTAL_MENU_ITEMS; ++i){
         counter_init(st_p + i);
+
     }
 }
 
@@ -19,7 +25,7 @@ void stats_purchase_cleanup(counter_t *st_p){
 }
 
 void stats_purchase_record(counter_t *st_p, int item_id){
-    counter_increment(st_p + item_id -1);
+    counter_increment(st_p + (item_id -1));
 }
 
 float stats_purchase_total_revenue(counter_t *st_p, menu_item_t *mn){

@@ -17,7 +17,26 @@ Concurrent token_queue
 #include "common.h"
 #include "token_queue.h"
 
+/*
+The main_token system is the heart of the restaurant system as it is used to
+coordinate between the clients and the staff(cashiers and staff)
 
+Basicallly, once a client enters the restaurant, they are issued a token,
+A token is basically a semaphore on which a client waits upon as the staff
+signal ie post to the client at different junctures eg, when a client's food is ready
+
+Once a client leaves the restaurant, they return the token and the same token can
+be used to coordinate with a new client
+
+Whenever, a client is issued a token, they are given an id onto which they can
+index into the semaphore array, their pid is also attached to the semaphore so that
+a client can only wait upon a semaphore that they were issued issued
+
+Further protections will be added in the future to guarantee that a clients/staff
+only wait/post on the appropriate token at a given moment
+
+
+*/
 
 typedef struct{
     token_queue_t tq;
@@ -104,29 +123,3 @@ int mt_token_return(main_token_system_t *mt, int index, int u_client_id){
 //-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
 
 #endif
-
-//usage
-//-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
-/*
-int main(){
-    int i;
-    pthread_t pd[CLIENTS];
-    mt_token_system_init(&mt);
-    for(i = 0; i < CLIENTS; ++i){
-        pthread_create(pd+i, 0, client_enter_restaurant, (void*) i);
-    }
-    for(i = 0; i < CLIENTS; ++i){
-        pthread_join(pd[i], NULL);
-    }
-    mt_token_system_cleanup(&mt);
-    return 0;
-}
-*/
-//-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
-
-
-
-
-
-
-//end

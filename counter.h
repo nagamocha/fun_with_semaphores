@@ -6,7 +6,13 @@
 #include <semaphore.h>
 #include <stdio.h>
 
+/*
+After the bounded buffer, this is the 2nd most used data structure in this project
+Basicallly, wherever multiple threads, process need to increment or decrement a
+single value, this counter_t is used as it's designed to prevent race conditions
 
+
+*/
 
 
 typedef struct __counter_t{
@@ -27,6 +33,7 @@ void counter_increment(counter_t *c){
   sem_wait(&c->lock);
   c->value++;
   sem_post(&c->lock);
+
 }
 
 void counter_increment_by_n(counter_t *c, int n){

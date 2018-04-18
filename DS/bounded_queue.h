@@ -10,7 +10,6 @@
 
 
 
-
 typedef struct{
     int buffer[BQ_MAX];
     int fill;

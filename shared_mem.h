@@ -16,6 +16,43 @@
 #include "stats_purchases.h"
 #include "stats_clients.h"
 
+
+/*
+
+shared memory consists of the following
+main_token_system_t mt;
+see main_token_system.h for further details
+
+lineup_queue_t lq;
+the lineup queue, bounded buffer for all the orders that clients write and
+cashiers read
+
+lineup_queue_t sq;
+the server queue, bounded buffer for all the orders that cashiers pass to the
+server
+
+menu_item_t mn[TOTAL_MENU_ITEMS];
+stores all the menu items, eg for item 1, the name, preparation time, price etc
+
+counter_t st_p[TOTAL_MENU_ITEMS];
+stores all the purches stats, eg how much of item 3 was purchased that day
+
+stats_clients_buf_t st_c;
+stores all the client stats, ie total time waiting, total number of clients
+that visited etc
+
+pid_t staff_id[TOTAL_STAFF_SIZE];
+the process ids of all the staff members
+
+int sm_id;
+the shared memory id of the shared memory
+
+
+Shared memory also provides functions for inititializng the datastructures above
+and cleabing up after done
+*/
+
+
 typedef struct{
     main_token_system_t mt;
     lineup_queue_t lq;
@@ -23,15 +60,22 @@ typedef struct{
     menu_item_t mn[TOTAL_MENU_ITEMS];
     counter_t st_p[TOTAL_MENU_ITEMS];
     stats_clients_buf_t st_c;
+    pid_t staff_id[TOTAL_STAFF_SIZE];
+    int sm_id;
 } shared_mem_t;
 
 
 void shared_memory_init(shared_mem_t* sm){
+    int i;
     mt_token_system_init(&(sm->mt));
     lineup_queue_init(&(sm->lq));
     lineup_queue_init(&(sm->sq));
     stats_purchase_init(sm->st_p);
     stats_clients_init(&(sm->st_c));
+    menu_init(sm->mn);
+    for(i = 0; i < TOTAL_STAFF_SIZE; ++i){
+        sm->staff_id[i] = 0;
+    }
 }
 
 void shared_memory_cleanup(shared_mem_t* sm){

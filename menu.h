@@ -1,8 +1,18 @@
 #ifndef MENU_H
 #define MENU_H
 #include <string.h>
+
+
+/*
+Holds menu items and provides for mechanisms for retrieving
+menu item details
 //there will be 20 menu items hardcoded
 //item id implicit, index in menu array
+
+
+*/
+
+
 #define TOTAL_MENU_ITEMS 20
 
 typedef struct{
@@ -14,8 +24,8 @@ typedef struct{
 
 
 void menu_item_set(menu_item_t *mn, char* n, float p, int min, int max){
-    mn->price = p;
     strcpy(mn->name, n);
+    mn->price = p;
     mn->time_min = min;
     mn->time_max = max;
 }
@@ -24,7 +34,8 @@ void menu_item_set(menu_item_t *mn, char* n, float p, int min, int max){
 //assumes menu has 20 slots or more
 void menu_init(menu_item_t *mn_arr){
     int i;
-    menu_item_set(mn_arr +  0, "BBQ-Chicken-Salad"   ,  8.95, 18, 24);
+    //menu_item_set(mn_arr +  0, "BBQ-Chicken-Salad"   ,  8.95, 18, 24);
+    menu_item_set(mn_arr +  0, "BBQ-Chicken-Salad"   ,  10, 0, 0);
     menu_item_set(mn_arr +  1, "Spinach Power"       ,  9.15, 12, 16);
     menu_item_set(mn_arr +  2, "Garden-Salad"        ,  4.75, 10, 13);
     menu_item_set(mn_arr +  3, "Steak-Blue-Cheese"   ,  7.25, 12, 15);
@@ -45,7 +56,6 @@ void menu_init(menu_item_t *mn_arr){
     menu_item_set(mn_arr + 18, "Mocha"               ,  3.25,  2,  3);
     menu_item_set(mn_arr + 19, "Cafe-Latte"          ,  3.75,  5,  7);
 }
-
 
 
 float menu_get_value(menu_item_t *mn, int item_id){
